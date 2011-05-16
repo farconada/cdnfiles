@@ -1,0 +1,34 @@
+# cat=basic/enable/fileadmin; type=boolean; label=Replace fileadmin/ directory.
+replace_fileadmin_directory = 1
+# cat=basic/enable/fileadmin; type=string; label=URL prefix for fileadmin/. Must end in "/"
+fileadmin_urlprefix =
+# cat=basic/enable/fileadmin; type=string; label=Regular expression PCRE pattern for fileadmin/ directory
+fileadmin_regexp = |"fileadmin/[^"]*"|i
+# cat=basic/enable/fileadmin; type=boolean; label=remove fileadmin/ directory from the path.
+remove_fileadmin_directory = 1
+
+
+# cat=basic/enable/uploads; type=boolean; label=Replace uploads/ directory.
+replace_uploads_directory = 1
+# cat=basic/enable/upload; type=string; label=URL prefix for uploads/. Must end in "/"
+uploads_urlprefix =
+# cat=basic/enable/upload; type=string; label=Regular expression PCRE pattern for fileadmin/ directory
+uploads_regexp = |"uploads/[^"]*"|i
+# cat=basic/enable/upload; type=boolean; label=remove upload/ directory from the path.
+remove_uploads_directory = 1
+
+
+
+# cat=basic/enable/typo3temppics; type=boolean; label=Replace typo3temp/pics/ directory.
+replace_typo3temppics_directory = 1
+# cat=basic/enable/typo3temppics; type=string; label=URL prefix for typo3temp/pics/. Must end in "/"
+typo3temppics_urlprefix =
+# cat=basic/enable/typo3temppics; type=string; label=Regular expression PCRE pattern for fileadmin/ directory
+typo3temppics_regexp = |"typo3temp/pics/[^"]*"|i
+# cat=basic/enable/typo3temppics; type=boolean; label=remove typo3temp/ directory from the path.
+remove_typo3temp_directory = 1
+
+
+
+# cat=basic/file/configfile; type=string; label=File for advanced configuration in YAML format.
+advancedconfig_file = typo3conf/cdnfiles.yml

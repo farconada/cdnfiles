@@ -1,0 +1,14 @@
+## YAML CDN configuration file
+patterns:
+  '(fileadmin/[^"]*\.css)':
+    cdn_prefix: "http://a0.twimg.com/a/1266605807/images/"
+    replace: true
+  '(fileadmin/[^"]*\.js)':
+    replace: false
+files:
+  "jquery-1.3.2.min.js":
+   replace: true
+   cdn_url: http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js
+  "typo3temp/pics/3a5338c306.jpg":
+    replace: false
+
