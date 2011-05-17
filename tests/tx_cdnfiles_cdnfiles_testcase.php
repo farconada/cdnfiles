@@ -1,4 +1,5 @@
 <?php
+require_once(t3lib_extMgm::extPath('cdnfiles').'class.tx_cdnfiles.php');
 /* 
  * Config file for the tets
 ## YAML CDN configuration file
@@ -43,8 +44,40 @@ files:
  */
 class tx_cdnfiles_cdnfiles_testcase extends tx_phpunit_testcase {
     public function setUp(){
-        include_once(t3lib_extMgm::extPath('cdnfiles').'class.tx_cdnfiles.php');
+        // new replacer object tx_cdnfiles
         $this->cdnfilesObj = t3lib_div::makeInstance('tx_cdnfiles');
+
+        //configure the object accessing private properties
+        $property = new ReflectionProperty($this->cdnfilesObj,'extConfig');
+        $property->setAccessible(TRUE);
+        $config['replace_fileadmin_directory'] = '1';
+        $config['fileadmin_urlprefix'] = 'http://d3n13n30hxhvxs.cloudfront.net/';
+        $config['replace_uploads_directory'] = '1';
+        $config['uploads_urlprefix'] = 'http://d3peu3j0iocvte.cloudfront.net/';
+        $config['replace_typo3temppics_directory'] = '1';
+        $config['typo3temppics_urlprefix'] = 'http://d17p6bjnrj0oj1.cloudfront.net/';
+        $config['advancedconfig_file'] = '/var/www/html/zetalab/typo3conf/cdnfiles.yml';
+        $config['fileadmin_regexp'] = '(fileadmin/[^"]*)';
+        $config['uploads_regexp'] = '(uploads/[^"]*)';
+        $config['typo3temppics_regexp'] = '(typo3temp/pics/[^"]*)';
+        $config['remove_fileadmin_directory'] = '1';
+        $config['remove_uploads_directory'] = '1';
+        $config['remove_typo3temp_directory'] = '1';
+        $property->setValue($this->cdnfilesObj, $config);
+
+        //new object to manage the configuration files in YAML
+        $specialConfigurationObj = t3lib_div::makeInstance("tx_cdnfiles_specialconfiguration",$this->extConfig['advancedconfig_file']);
+        //load the YAML as inline string but not from a real file so:
+        //you need configure the object accessing private properties
+        $property = new ReflectionProperty($specialConfigurationObj,'config');
+        $property->setAccessible(TRUE);
+        $config = sfYamlInline::load("{ patterns: { '(fileadmin/[^\"]*\.css)': { cdn_prefix: 'http://a0.twimg.com/a/1266605807/images/', replace: true }, '(fileadmin/[^\"]*\.js)': { replace: false } }, files: { jquery-1.3.2.min.js: { replace: true, cdn_url: 'http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js' }, typo3temp/pics/3a5338c306.jpg: { replace: false } } }");
+        $property->setValue($specialConfigurationObj, $config);
+
+        // inject the 'specialConfigurationObj' inside tc_cdfiles replacer object
+        $property = new ReflectionProperty($this->cdnfilesObj,'specialConfigurationObj');
+        $property->setAccessible(TRUE);
+        $property->setValue($this->cdnfilesObj, $specialConfigurationObj);
     }
 
 
@@ -71,9 +104,7 @@ class tx_cdnfiles_cdnfiles_testcase extends tx_phpunit_testcase {
     public function test_doReplacement($replaceFileadmin,$replaceUploads,$replaceTypo3temppics,$content,$result){
         $property = new ReflectionProperty($this->cdnfilesObj,'extConfig');
         $property->setAccessible(TRUE);
-        $config = unserialize(
-            $GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['cdnfiles']
-        );
+        $config = $property->getValue($this->cdnfilesObj);
         $config['replace_fileadmin_directory'] = $replaceFileadmin;
         $config['replace_uploads_directory'] = $replaceUploads;
         $config['replace_typo3temppics_directory'] = $replaceTypo3temppics;
