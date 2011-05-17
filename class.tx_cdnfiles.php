@@ -1,8 +1,4 @@
 <?php
-/* 
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 require_once t3lib_extMgm::extPath('cdnfiles').'class.tx_cdnfiles_specialconfiguration.php';
 /**
  * Description of classtx_cdnfiles:
@@ -14,33 +10,36 @@ require_once t3lib_extMgm::extPath('cdnfiles').'class.tx_cdnfiles_specialconfigu
  */
 class tx_cdnfiles {
 
-    /** @var $extConfig array holds the extension configuration */
+    /** @var array holds the extension configuration */
     private $extConfig = array();
 
-    /** @var $currentDirectory string with current replacement directory, cause
+    /** @var string with current replacement directory, cause
      * I dont know how to pass more arguments to the callback function and i dont want to call pcre functions twice
      */
     private $currentDirectory ='';
 
     /**
-     * @var object this object reads the YAML configuration file and tests each file against it to look for any special configuration
+     * @var tx_cdnfiles_specialconfiguration this object reads the YAML configuration file and tests each file against it to look for any special configuration
      */
     private $specialConfigurationObj = null;
 
     public function __construct(){
-        // global extension configuration
+        // global extension configuration is read the typo3conf/localconf.php and managed with the TYPO3 extension manager
         $this->extConfig = unserialize(
             $GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['cdnfiles']
         );
-        // file with absolute path
+        // file with absolute path of the YAML file with advanced replacement configuration
         $this->extConfig['advancedconfig_file'] = PATH_site.$this->extConfig['advancedconfig_file'];
 
-        // the manager with advanced configuration
+        // the object manager with advanced configuration. this object is responsible to read the YAML file and giving a original file
+        // it returns an URL for this file if there is anyone
         $this->specialConfigurationObj = t3lib_div::makeInstance("tx_cdnfiles_specialconfiguration",$this->extConfig['advancedconfig_file']);
     }
 
     /**
-     *
+     * Responsible of replacement inside the hook ['tslib/class.tslib_fe.php']
+     * it takes a HTML string and returns the string with URLS replaced
+     * 
      * @param string $content HTML of the page, file references should be in quotes
      * @return string HTML with the replaced content
      */
@@ -51,6 +50,7 @@ class tx_cdnfiles {
          * each one could have its own config
          */
 
+        // fileadmin/
         if ($this->extConfig['replace_fileadmin_directory']){
             // $this->currentDirectory is used inside 'callbackReplacementFunction'
             $this->currentDirectory='fileadmin';
@@ -60,24 +60,30 @@ class tx_cdnfiles {
             $pattern = '|"'.$pattern.'"|i';
             $content = preg_replace_callback($pattern, array( &$this, 'callbackReplacementFunction'), $content);
         }
+
+        // uploads/
         if ($this->extConfig['replace_uploads_directory']){
             $this->currentDirectory='uploads';
             $pattern = $this->extConfig['uploads_regexp'];
             $pattern = '|"'.$pattern.'"|i';
             $content = preg_replace_callback($pattern, array( &$this, 'callbackReplacementFunction'), $content);
         }
+
+        // typo3temp/pics/
         if ($this->extConfig['replace_typo3temppics_directory']){
             $this->currentDirectory='typo3temppics';
             $pattern = $this->extConfig['typo3temppics_regexp'];
             $pattern = '|"'.$pattern.'"|i';
             $content = preg_replace_callback($pattern, array( &$this, 'callbackReplacementFunction'), $content);
         }
+        
         return $content;
 
     }
 
     /**
      * This function is triggered for every PCRE match and it proccess the filereferences
+     * Reponsible of replacement for just one file URL
      *
      * @param array $text as matched in a PCRE regular expression
      * @return string The file reference proccessed in quotes
@@ -90,8 +96,10 @@ class tx_cdnfiles {
             }else{
                 $searchedFile = $text[0];
             }
+
             //Look for a special configuration for this file
             $proccessedFile = $this->specialConfigurationObj->getFile($searchedFile);
+        
             /**
              * If !$proccessedFile is because there isnt any special configuration for that file
              */
@@ -112,7 +120,7 @@ class tx_cdnfiles {
                 }
             }
 
-            // at least you should get your original file, but you should never go into this confition
+            // at least you should get your original file, but you should never go into this configuration
             if(!$proccessedFile){
                 $proccessedFile = $searchedFile;
             }
@@ -133,10 +141,12 @@ class tx_cdnfiles {
                 }
 
             }
-            
+
+            //dont forget the quotes
             return '"'.$proccessedFile.'"';
 
     }
+    
     /**
      * Just a wrapper for the main function! It's used for the contentPostProc-output hook.
      *
