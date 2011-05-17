@@ -15,7 +15,7 @@ require_once t3lib_extMgm::extPath('cdnfiles').'lib/sfYaml.php';
  *
  * @author Fernando Arconada fernando.arconada@gmail.com
  */
-class tx_cdnfiles_specialconfiguration implements t3lib_Singleton {
+class tx_cdnfiles_specialconfiguration {
 
     /**
      *
