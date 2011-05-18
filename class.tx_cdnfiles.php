@@ -11,7 +11,7 @@ require_once t3lib_extMgm::extPath('cdnfiles').'class.tx_cdnfiles_specialconfigu
 class tx_cdnfiles {
 
     /** @var array holds the extension configuration */
-    private $extConfig = array();
+    private $extensionConfiguration = array();
 
     /** @var string with current replacement directory, cause
      * I dont know how to pass more arguments to the callback function and i dont want to call pcre functions twice
@@ -19,65 +19,68 @@ class tx_cdnfiles {
     private $currentDirectory ='';
 
     /**
-     * @var tx_cdnfiles_specialconfiguration this object reads the YAML configuration file and tests each file against it to look for any special configuration
+     * @var tx_cdnfiles_specialconfiguration_interface this object reads the YAML configuration file and tests each file against it to look for any special configuration
      */
     private $specialConfigurationObj = null;
 
     public function __construct(){
+        // TODO: override extension configuration from extension manager with template TSConfig if exists
         // global extension configuration is read the typo3conf/localconf.php and managed with the TYPO3 extension manager
-        $this->extConfig = unserialize(
+        $this->extensionConfiguration = unserialize(
             $GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['cdnfiles']
         );
         // file with absolute path of the YAML file with advanced replacement configuration
-        $this->extConfig['advancedconfig_file'] = PATH_site.$this->extConfig['advancedconfig_file'];
+        $this->extensionConfiguration['advancedconfig_file'] = PATH_site.$this->extensionConfiguration['advancedconfig_file'];
 
+        // TODO: make this object plugable, which paramaters/initialization should it use
         // the object manager with advanced configuration. this object is responsible to read the YAML file and giving a original file
         // it returns an URL for this file if there is anyone
-        $this->specialConfigurationObj = t3lib_div::makeInstance("tx_cdnfiles_specialconfiguration",$this->extConfig['advancedconfig_file']);
+        $this->specialConfigurationObj = t3lib_div::makeInstance("tx_cdnfiles_specialconfiguration",$this->extensionConfiguration['advancedconfig_file']);
     }
 
     /**
      * Responsible of replacement inside the hook ['tslib/class.tslib_fe.php']
      * it takes a HTML string and returns the string with URLS replaced
      * 
-     * @param string $content HTML of the page, file references should be in quotes
+     * @param string $htmlContent HTML of the page, file references should be in quotes
      * @return string HTML with the replaced content
      */
-    public function doReplacement($content){
+    public function doReplacement($htmlContent){
 
         /**
          * Do I have to work with, fileadmin/ uploads/ typo3temp/pics?
          * each one could have its own config
          */
 
+        // TODO: avoid repeated code but it could lead to a less readable code
         // fileadmin/
-        if ($this->extConfig['replace_fileadmin_directory']){
+        if ($this->extensionConfiguration['replace_fileadmin_directory']){
             // $this->currentDirectory is used inside 'callbackReplacementFunction'
             $this->currentDirectory='fileadmin';
             // pattern to match the fileadmin directory
-            $pattern = $this->extConfig['fileadmin_regexp'];
+            $pattern = $this->extensionConfiguration['fileadmin_regexp'];
             //always testing case insensitive
             $pattern = '|"'.$pattern.'"|i';
-            $content = preg_replace_callback($pattern, array( &$this, 'callbackReplacementFunction'), $content);
+            $htmlContent = preg_replace_callback($pattern, array( &$this, 'callbackReplacementFunction'), $htmlContent);
         }
 
         // uploads/
-        if ($this->extConfig['replace_uploads_directory']){
+        if ($this->extensionConfiguration['replace_uploads_directory']){
             $this->currentDirectory='uploads';
-            $pattern = $this->extConfig['uploads_regexp'];
+            $pattern = $this->extensionConfiguration['uploads_regexp'];
             $pattern = '|"'.$pattern.'"|i';
-            $content = preg_replace_callback($pattern, array( &$this, 'callbackReplacementFunction'), $content);
+            $htmlContent = preg_replace_callback($pattern, array( &$this, 'callbackReplacementFunction'), $htmlContent);
         }
 
         // typo3temp/pics/
-        if ($this->extConfig['replace_typo3temppics_directory']){
+        if ($this->extensionConfiguration['replace_typo3temppics_directory']){
             $this->currentDirectory='typo3temppics';
-            $pattern = $this->extConfig['typo3temppics_regexp'];
+            $pattern = $this->extensionConfiguration['typo3temppics_regexp'];
             $pattern = '|"'.$pattern.'"|i';
-            $content = preg_replace_callback($pattern, array( &$this, 'callbackReplacementFunction'), $content);
+            $htmlContent = preg_replace_callback($pattern, array( &$this, 'callbackReplacementFunction'), $htmlContent);
         }
         
-        return $content;
+        return $htmlContent;
 
     }
 
@@ -85,65 +88,72 @@ class tx_cdnfiles {
      * This function is triggered for every PCRE match and it proccess the filereferences
      * Reponsible of replacement for just one file URL
      *
-     * @param array $text as matched in a PCRE regular expression
+     * @param array $matchedText as matched in a PCRE regular expression
      * @return string The file reference proccessed in quotes
      */
-    private function callbackReplacementFunction($text){
-        
+    private function callbackReplacementFunction($matchedText){
+            //TODO: add hook preReplacement
+
             // If you have a regular expression with () then use the first () variable
-            if(isset($text[1])){
-                $searchedFile = $text[1];
+            if(isset($matchedText[1])){
+                $searchedFile = $matchedText[1];
             }else{
-                $searchedFile = $text[0];
+                $searchedFile = $matchedText[0];
             }
 
+            // TODO: add hook
             //Look for a special configuration for this file
-            $proccessedFile = $this->specialConfigurationObj->getFile($searchedFile);
+            $fileWithUrlReplaced = $this->specialConfigurationObj->getFileUrlReplaced($searchedFile);
         
             /**
-             * If !$proccessedFile is because there isnt any special configuration for that file
+             * If !$fileWithUrlReplaced is because there isnt any special configuration for that file
+             * so going to default config at directory level
              */
-            if (!$proccessedFile){
+            if (!$fileWithUrlReplaced){
                 //If no have any special configuration just apply the common config
                 /// because I have $this->currentDirectory, I dont have to use a regular expression again to know in that directory i'm working
                 switch($this->currentDirectory){
                     case 'fileadmin':                       
-                        $proccessedFile = $this->extConfig['fileadmin_urlprefix'] . $searchedFile;
+                        $fileWithUrlReplaced = $this->extensionConfiguration['fileadmin_urlprefix'] . $searchedFile;
                         break;
                     case 'uploads':                       
-                        $proccessedFile = $this->extConfig['uploads_urlprefix'] . $searchedFile;
+                        $fileWithUrlReplaced = $this->extensionConfiguration['uploads_urlprefix'] . $searchedFile;
                         break;
                     case 'typo3temppics':                     
-                        $proccessedFile = $this->extConfig['typo3temppics_urlprefix'] . $searchedFile;
+                        $fileWithUrlReplaced = $this->extensionConfiguration['typo3temppics_urlprefix'] . $searchedFile;
                         break;
 
                 }
             }
 
             // at least you should get your original file, but you should never go into this configuration
-            if(!$proccessedFile){
-                $proccessedFile = $searchedFile;
+            if(!$fileWithUrlReplaced){
+                $fileWithUrlReplaced = $searchedFile;
             }
 
             /**
-             * $proccessedFile != $searchedFile is because you did something with the file
+             * $fileWithUrlReplaced != $searchedFile is because you did something with the file: you have replaced the file with a special config
              */
-            if($proccessedFile != $searchedFile){
+            // TODO: should I remove that directories in the URL even if if I have a special config for this file?
+            // TODO: testcase fileadmin/somefile.js replaced with http://server.mycdn.com/fileadmin/something.js
+            if($fileWithUrlReplaced != $searchedFile){
                 //should I remove the fileadmin/ uploads/ or typo3temp/ directory
-                if($this->extConfig['remove_fileadmin_directory']){
-                                $proccessedFile = str_replace('/fileadmin/', '/', $proccessedFile);
+                if($this->extensionConfiguration['remove_fileadmin_directory']){
+                                $fileWithUrlReplaced = str_replace('/fileadmin/', '/', $fileWithUrlReplaced);
                 }
-                if($this->extConfig['remove_uploads_directory']){
-                                $proccessedFile = str_replace('/uploads/', '/', $proccessedFile);
+                if($this->extensionConfiguration['remove_uploads_directory']){
+                                $fileWithUrlReplaced = str_replace('/uploads/', '/', $fileWithUrlReplaced);
                 }
-                if($this->extConfig['remove_typo3temp_directory']){
-                                $proccessedFile = str_replace('/typo3temp/', '/', $proccessedFile);
+                if($this->extensionConfiguration['remove_typo3temp_directory']){
+                                $fileWithUrlReplaced = str_replace('/typo3temp/', '/', $fileWithUrlReplaced);
                 }
 
             }
+            //TODO: add hook postReplacement
 
+            // TODO: ensure that the file is always returned with quotes
             //dont forget the quotes
-            return '"'.$proccessedFile.'"';
+            return '"'.$fileWithUrlReplaced.'"';
 
     }
     

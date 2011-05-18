@@ -17,7 +17,7 @@ files:
     replace: false
  */
 /**
- * [extConfig:tx_cdnfiles:private] => Array
+ * [extensionConfiguration:tx_cdnfiles:private] => Array
         (
             [replace_fileadmin_directory] => 1
             [fileadmin_urlprefix] => http://d3n13n30hxhvxs.cloudfront.net/
@@ -48,7 +48,7 @@ class tx_cdnfiles_cdnfiles_testcase extends tx_phpunit_testcase {
         $this->cdnfilesObj = t3lib_div::makeInstance('tx_cdnfiles');
 
         //configure the object accessing private properties
-        $property = new ReflectionProperty($this->cdnfilesObj,'extConfig');
+        $property = new ReflectionProperty($this->cdnfilesObj,'extensionConfiguration');
         $property->setAccessible(TRUE);
         $config['replace_fileadmin_directory'] = '1';
         $config['fileadmin_urlprefix'] = 'http://d3n13n30hxhvxs.cloudfront.net/';
@@ -102,7 +102,7 @@ class tx_cdnfiles_cdnfiles_testcase extends tx_phpunit_testcase {
      * @dataProvider providerContent
      */
     public function test_doReplacement($replaceFileadmin,$replaceUploads,$replaceTypo3temppics,$content,$result){
-        $property = new ReflectionProperty($this->cdnfilesObj,'extConfig');
+        $property = new ReflectionProperty($this->cdnfilesObj,'extensionConfiguration');
         $property->setAccessible(TRUE);
         $config = $property->getValue($this->cdnfilesObj);
         $config['replace_fileadmin_directory'] = $replaceFileadmin;
