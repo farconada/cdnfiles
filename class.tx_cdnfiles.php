@@ -108,6 +108,29 @@ class tx_cdnfiles {
 
         return $fileUrlWithPrefix;
     }
+
+    /**
+     * Remove fileadmin/ uploads/ or typo3temp/ directory from the input URL only if you have set it in your config
+     * @param  $fileUrl input URL
+     * @return string file with
+     */
+    private function removeDirectoryFromUrlIfNeeded($fileUrl) {
+        // TODO: should I remove that directories in the URL even if if I have a special config for this fileUrl?
+        // TODO: testcase fileadmin/somefile.js replaced with http://server.mycdn.com/fileadmin/something.js
+
+        //should I remove the fileadmin/ uploads/ or typo3temp/ directory
+        if($this->extensionConfiguration['remove_fileadmin_directory']){
+                        $fileUrl = str_replace('/fileadmin/', '/', $fileUrl);
+        }
+        if($this->extensionConfiguration['remove_uploads_directory']){
+                        $fileUrl = str_replace('/uploads/', '/', $fileUrl);
+        }
+        if($this->extensionConfiguration['remove_typo3temp_directory']){
+                        $fileUrl = str_replace('/typo3temp/', '/', $fileUrl);
+        }
+
+        return $fileUrl;
+    }
     /**
      * This function is triggered for every PCRE match and it proccess the filereferences
      * Reponsible of replacement for just one fileUrl URL
@@ -142,24 +165,12 @@ class tx_cdnfiles {
             /**
              * $fileWithUrlReplaced != $searchedFile is because you did something with the fileUrl: you have replaced the fileUrl with a special config
              */
-            // TODO: should I remove that directories in the URL even if if I have a special config for this fileUrl?
-            // TODO: testcase fileadmin/somefile.js replaced with http://server.mycdn.com/fileadmin/something.js
             if($fileWithUrlReplaced != $searchedFile){
                 //should I remove the fileadmin/ uploads/ or typo3temp/ directory
-                if($this->extensionConfiguration['remove_fileadmin_directory']){
-                                $fileWithUrlReplaced = str_replace('/fileadmin/', '/', $fileWithUrlReplaced);
-                }
-                if($this->extensionConfiguration['remove_uploads_directory']){
-                                $fileWithUrlReplaced = str_replace('/uploads/', '/', $fileWithUrlReplaced);
-                }
-                if($this->extensionConfiguration['remove_typo3temp_directory']){
-                                $fileWithUrlReplaced = str_replace('/typo3temp/', '/', $fileWithUrlReplaced);
-                }
-
+                $fileWithUrlReplaced = $this->removeDirectoryFromUrlIfNeeded($fileWithUrlReplaced);
             }
             //TODO: add hook postReplacement
 
-            // TODO: ensure that the fileUrl is always returned with quotes
             //dont forget the quotes
             return '"'.$fileWithUrlReplaced.'"';
 
