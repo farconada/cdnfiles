@@ -54,29 +54,29 @@ class tx_cdnfiles_specialconfiguration implements tx_cdnfiles_specialconfigurati
     }
     /**
      * Do I have any special config for this file?
-     * @param string $originalFileToBeReplaced
+     * @param string $fileToReplaced
      * @return string|null if have a special config i should return the file refernce
      *  proccessed, If the file refernce proccessed is equal as filerefernce is
      *  because i have written in my config which that file should be proccessed
      *  the function returns null if has nothing about that file
      */
-    public function getFileUrlReplaced($originalFileToBeReplaced){
+    public function getFileUrlReplaced($fileToReplaced){
         //lets look in the files section
         /**
          * Files section has priority over patterns section because
          * patterns are more general than files
          * The order is important cause it works in short-circuit mode
          */
-        foreach ($this->config['files'] as $file => $fileReplacementConfiguration){
+        foreach ($this->config['files'] as $file => $fileReplacementConfig){
             //always testing case insensitive
-            if(preg_match("|".$file."|i", $originalFileToBeReplaced)){
+            if(preg_match("|".$file."|i", $fileToReplaced)){
                 //There is a config for this file
-                if($fileReplacementConfiguration['replace']){
+                if($fileReplacementConfig['replace']){
                     //then i should have an URL
-                    return $fileReplacementConfiguration['cdn_url'];
+                    return $fileReplacementConfig['cdn_url'];
                 }else{
                     // please dont touch my file it shouldnt be replaced
-                    return $originalFileToBeReplaced;
+                    return $fileToReplaced;
                 }
 
             }
@@ -84,12 +84,12 @@ class tx_cdnfiles_specialconfiguration implements tx_cdnfiles_specialconfigurati
 
 
         //lets look in the patterns section
-        foreach ($this->config['patterns'] as $pattern => $patternReplacementConfiguration){
-            if(preg_match("|".$pattern."|i", $originalFileToBeReplaced)){
-                if($patternReplacementConfiguration['replace']){
-                    return $patternReplacementConfiguration['cdn_prefix'].$originalFileToBeReplaced;
+        foreach ($this->config['patterns'] as $pattern => $patternReplacementConfig){
+            if(preg_match("|".$pattern."|i", $fileToReplaced)){
+                if($patternReplacementConfig['replace']){
+                    return $patternReplacementConfig['cdn_prefix'].$fileToReplaced;
                 }else{
-                    return $originalFileToBeReplaced;
+                    return $fileToReplaced;
                 }
 
             }

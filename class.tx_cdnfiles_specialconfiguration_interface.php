@@ -7,5 +7,5 @@
 
  
 interface tx_cdnfiles_specialconfiguration_interface {
-    public function getFileUrlReplaced($originalFileToBeReplaced);
+    public function getFileUrlReplaced($fileToReplaced);
 }
