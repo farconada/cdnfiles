@@ -19,7 +19,7 @@ class tx_cdnfiles {
     private $currentDirectory ='';
 
     /**
-     * @var tx_cdnfiles_specialconfiguration_interface this object reads the YAML configuration file and tests each file against it to look for any special configuration
+     * @var tx_cdnfiles_specialconfiguration_interface this object reads the YAML configuration fileUrl and tests each fileUrl against it to look for any special configuration
      */
     private $specialConfigurationObj = null;
 
@@ -29,12 +29,12 @@ class tx_cdnfiles {
         $this->extensionConfiguration = unserialize(
             $GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['cdnfiles']
         );
-        // file with absolute path of the YAML file with advanced replacement configuration
+        // fileUrl with absolute path of the YAML fileUrl with advanced replacement configuration
         $this->extensionConfiguration['advancedconfig_file'] = PATH_site.$this->extensionConfiguration['advancedconfig_file'];
 
         // TODO: make this object plugable, which paramaters/initialization should it use
-        // the object manager with advanced configuration. this object is responsible to read the YAML file and giving a original file
-        // it returns an URL for this file if there is anyone
+        // the object manager with advanced configuration. this object is responsible to read the YAML fileUrl and giving a original fileUrl
+        // it returns an URL for this fileUrl if there is anyone
         $this->specialConfigurationObj = t3lib_div::makeInstance("tx_cdnfiles_specialconfiguration",$this->extensionConfiguration['advancedconfig_file']);
     }
 
@@ -42,7 +42,7 @@ class tx_cdnfiles {
      * Responsible of replacement inside the hook ['tslib/class.tslib_fe.php']
      * it takes a HTML string and returns the string with URLS replaced
      * 
-     * @param string $htmlContent HTML of the page, file references should be in quotes
+     * @param string $htmlContent HTML of the page, fileUrl references should be in quotes
      * @return string HTML with the replaced content
      */
     public function doReplacement($htmlContent){
@@ -85,11 +85,35 @@ class tx_cdnfiles {
     }
 
     /**
+     * Appends a prefix to a file URL depending of the directory you are working with
+     * @param  $fileUrl The file URL input
+     * @return string FileURL + a prefix
+     */
+    private function prefixFileUrl($fileUrl) {
+        //at least it should result the fileUrl itself
+        $fileUrlWithPrefix = $fileUrl;
+        
+        switch($this->currentDirectory){
+                case 'fileadmin':
+                    $fileUrlWithPrefix = $this->extensionConfiguration['fileadmin_urlprefix'] . $fileUrl;
+                    break;
+                case 'uploads':
+                    $fileUrlWithPrefix = $this->extensionConfiguration['uploads_urlprefix'] . $fileUrl;
+                    break;
+                case 'typo3temppics':
+                    $fileUrlWithPrefix = $this->extensionConfiguration['typo3temppics_urlprefix'] . $fileUrl;
+                    break;
+
+        }
+
+        return $fileUrlWithPrefix;
+    }
+    /**
      * This function is triggered for every PCRE match and it proccess the filereferences
-     * Reponsible of replacement for just one file URL
+     * Reponsible of replacement for just one fileUrl URL
      *
      * @param array $matchedText as matched in a PCRE regular expression
-     * @return string The file reference proccessed in quotes
+     * @return string The fileUrl reference proccessed in quotes
      */
     private function callbackReplacementFunction($matchedText){
             //TODO: add hook preReplacement
@@ -102,39 +126,23 @@ class tx_cdnfiles {
             }
 
             // TODO: add hook
-            //Look for a special configuration for this file
+            //Look for a special configuration for this fileUrl
             $fileWithUrlReplaced = $this->specialConfigurationObj->getFileUrlReplaced($searchedFile);
         
             /**
-             * If !$fileWithUrlReplaced is because there isnt any special configuration for that file
+             * If !$fileWithUrlReplaced is because there isnt any special configuration for that fileUrl
              * so going to default config at directory level
              */
             if (!$fileWithUrlReplaced){
                 //If no have any special configuration just apply the common config
                 /// because I have $this->currentDirectory, I dont have to use a regular expression again to know in that directory i'm working
-                switch($this->currentDirectory){
-                    case 'fileadmin':                       
-                        $fileWithUrlReplaced = $this->extensionConfiguration['fileadmin_urlprefix'] . $searchedFile;
-                        break;
-                    case 'uploads':                       
-                        $fileWithUrlReplaced = $this->extensionConfiguration['uploads_urlprefix'] . $searchedFile;
-                        break;
-                    case 'typo3temppics':                     
-                        $fileWithUrlReplaced = $this->extensionConfiguration['typo3temppics_urlprefix'] . $searchedFile;
-                        break;
-
-                }
-            }
-
-            // at least you should get your original file, but you should never go into this configuration
-            if(!$fileWithUrlReplaced){
-                $fileWithUrlReplaced = $searchedFile;
+                $fileWithUrlReplaced = $this->prefixFileUrl($searchedFile);
             }
 
             /**
-             * $fileWithUrlReplaced != $searchedFile is because you did something with the file: you have replaced the file with a special config
+             * $fileWithUrlReplaced != $searchedFile is because you did something with the fileUrl: you have replaced the fileUrl with a special config
              */
-            // TODO: should I remove that directories in the URL even if if I have a special config for this file?
+            // TODO: should I remove that directories in the URL even if if I have a special config for this fileUrl?
             // TODO: testcase fileadmin/somefile.js replaced with http://server.mycdn.com/fileadmin/something.js
             if($fileWithUrlReplaced != $searchedFile){
                 //should I remove the fileadmin/ uploads/ or typo3temp/ directory
@@ -151,7 +159,7 @@ class tx_cdnfiles {
             }
             //TODO: add hook postReplacement
 
-            // TODO: ensure that the file is always returned with quotes
+            // TODO: ensure that the fileUrl is always returned with quotes
             //dont forget the quotes
             return '"'.$fileWithUrlReplaced.'"';
 
@@ -162,7 +170,7 @@ class tx_cdnfiles {
      *
      * This hook is executed if the page contains *_INT objects! It's called always at the
      * last hook before the final output. This isn't the case if you are using a
-     * static file cache like nc_staticfilecache.
+     * static fileUrl cache like nc_staticfilecache.
      *
      * @return bool
      */
